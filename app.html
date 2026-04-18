@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IoT Exam Helper</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --glass-bg: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.12);
+    --glass-hover: rgba(255,255,255,0.09);
+    --accent: #7c3aed;
+    --accent-light: #a78bfa;
+    --accent-glow: rgba(124,58,237,0.35);
+    --success: #10b981;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text-primary: #f1f5f9;
+    --text-muted: #94a3b8;
+    --bg-deep: #0a0a14;
+    --bg-mid: #0f0f1e;
+    --bg-card: rgba(255,255,255,0.04);
+    --sidebar-w: 220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,58,237,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(16,185,129,0.08) 0%, transparent 60%);
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+  /* Glass utility */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+  }
+
+  /* Sidebar */
+  #sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: rgba(10,10,20,0.85);
+    border-right: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+  }
+  #sidebar.hidden-mobile { transform: translateX(-100%); }
+  .sidebar-logo {
+    padding: 22px 18px 16px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .sidebar-logo h1 { font-size: 15px; font-weight: 700; color: var(--accent-light); letter-spacing: 0.5px; }
+  .sidebar-logo p { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .week-list { padding: 8px 10px; flex: 1; }
+  .week-btn {
+    width: 100%; text-align: left;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: all 0.18s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .week-btn:hover { background: var(--glass-hover); color: var(--text-primary); }
+  .week-btn.active { background: var(--accent-glow); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.35); }
+  .week-btn .score-pill {
+    margin-left: auto;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+  }
+  .week-btn.active .score-pill { background: rgba(124,58,237,0.3); color: var(--accent-light); }
+
+  /* Main content */
+  #main {
+    margin-left: var(--sidebar-w);
+    padding: 28px 24px;
+    min-height: 100vh;
+    transition: margin 0.3s;
+  }
+  .top-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+  }
+  #hamburger {
+    display: none;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  body.quiz-locked #sidebar,
+  body.quiz-locked #sidebarOverlay {
+    display: none !important;
+  }
+  body.quiz-locked #main {
+    margin-left: 0;
+  }
+  body.quiz-locked #hamburger {
+    display: none !important;
+  }
+
+  /* Week header */
+  .week-header {
+    margin-bottom: 18px;
+  }
+  .week-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+  }
+  .week-header p {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--text-primary);
+    margin-top: 6px;
+  }
+
+  /* Start card */
+  #start-card {
+    max-width: 520px;
+  }
+  .start-card-inner {
+    padding: 28px;
+  }
+  .start-card-inner h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .start-card-inner p { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px; }
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 24px var(--accent-glow);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 28px var(--accent-glow); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary {
+    width: 100%;
+    padding: 11px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+  }
+  .btn-secondary:hover { background: var(--glass-hover); }
+
+  /* Quiz area */
+  #quiz-area { display: none; }
+  .progress-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .question-card {
+    max-width: 640px;
+  }
+  .question-card-inner { padding: 24px 28px; }
+  .q-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex; gap: 10px;
+  }
+  .q-meta .q-tag {
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(124,58,237,0.15);
+    color: var(--accent-light);
+    font-size: 11px;
+  }
+  .q-text {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex; align-items: flex-start; gap: 10px;
+    line-height: 1.5;
+  }
+  .option-btn:hover:not(:disabled) { background: var(--glass-hover); border-color: rgba(124,58,237,0.4); transform: translateX(3px); }
+  .option-btn .opt-letter {
+    width: 22px; height: 22px; min-width: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .option-btn.selected .opt-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--success); background: rgba(16,185,129,0.1); }
+  .option-btn.correct .opt-letter { background: var(--success); color: #fff; }
+  .option-btn.wrong { border-color: var(--danger); background: rgba(239,68,68,0.1); }
+  .option-btn.wrong .opt-letter { background: var(--danger); color: #fff; }
+  .option-btn:disabled { cursor: not-allowed; opacity: 0.85; }
+
+  /* Explanation box */
+  .explanation-box {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border-left: 3px solid var(--accent);
+    background: rgba(124,58,237,0.08);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    display: none;
+  }
+  .explanation-box.visible { display: block; }
+  .explanation-box strong { color: var(--accent-light); }
+
+  /* Nav buttons row */
+  .quiz-nav {
+    display: flex; gap: 10px; margin-top: 20px; max-width: 640px;
+  }
+  .quiz-nav button { flex: 1; }
+
+  /* Results screen */
+  #results-area { display: none; max-width: 560px; }
+  .results-hero {
+    padding: 32px 28px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .score-circle {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--pct) * 3.6deg), rgba(255,255,255,0.06) 0deg);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    position: relative;
+  }
+  .score-circle::before {
+    content: '';
+    position: absolute;
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: var(--bg-mid);
+  }
+  .score-circle .score-text {
+    position: relative; z-index: 1;
+    font-size: 22px; font-weight: 700;
+    color: var(--accent-light);
+  }
+  .results-hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .results-hero p { font-size: 14px; color: var(--text-muted); }
+  .stats-row {
+    display: flex; gap: 10px;
+    padding: 0 28px 24px;
+  }
+  .stat-box {
+    flex: 1; padding: 14px 12px; border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    text-align: center;
+  }
+  .stat-box .stat-num { font-size: 20px; font-weight: 700; }
+  .stat-box .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .stat-box.green .stat-num { color: var(--success); }
+  .stat-box.red .stat-num { color: var(--danger); }
+  .stat-box.amber .stat-num { color: var(--warn); }
+  .results-actions { padding: 0 28px 28px; display: flex; flex-direction: column; gap: 10px; }
+  .premium-card {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(96,165,250,0.35);
+    background: linear-gradient(145deg, rgba(37,99,235,0.2), rgba(15,23,42,0.62));
+    color: #dbeafe;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 28px rgba(30,64,175,0.22);
+  }
+  .premium-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(147,197,253,0.6);
+    box-shadow: 0 14px 34px rgba(30,64,175,0.32);
+  }
+  .premium-card svg { flex-shrink: 0; color: #93c5fd; }
+  .premium-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: #eff6ff;
+  }
+  .premium-card-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #bfdbfe;
+  }
+  .review-wrap { padding: 0 28px 28px; }
+  .review-wrap h4 {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .review-item {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .review-item:last-child { margin-bottom: 0; }
+  .review-q {
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    line-height: 1.55;
+  }
+  .review-answer {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .review-answer .picked-correct { color: var(--success); font-weight: 600; }
+  .review-answer .picked-wrong { color: var(--danger); font-weight: 600; }
+  .review-answer .actual-correct { color: var(--success); font-weight: 600; }
+  .review-exp {
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* Past scores */
+  .past-scores { padding: 0 28px 28px; }
+  .past-scores h4 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .score-history-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+  }
+  .score-history-row:last-child { border-bottom: none; }
+
+  /* UPI Modal */
+  #upi-modal {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+  }
+  #upi-modal.open { display: flex; }
+  .modal-inner {
+    background: linear-gradient(155deg, rgba(15,23,42,0.86), rgba(30,41,59,0.68));
+    border: 1px solid rgba(148,163,184,0.34);
+    border-radius: 22px;
+    padding: 28px 24px;
+    max-width: 360px; width: 92%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 22px 45px rgba(2,6,23,0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .modal-inner h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #e2e8f0; }
+  .modal-inner p { font-size: 13px; color: #cbd5e1; margin-bottom: 20px; line-height: 1.6; }
+  .qr-placeholder {
+    width: 188px; height: 188px;
+    margin: 0 auto 16px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(148,163,184,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .qr-placeholder svg { width: 120px; height: 120px; }
+  .qr-placeholder p { color: #333; font-size: 10px; font-weight: 600; margin: 0; }
+  .upi-id {
+    font-size: 12px;
+    color: #bfdbfe;
+    background: rgba(59,130,246,0.14);
+    border: 1px solid rgba(96,165,250,0.35);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+    display: inline-block;
+    font-family: monospace;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 16px;
+    background: transparent; border: none;
+    color: var(--text-muted); font-size: 20px;
+    cursor: pointer; padding: 4px;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state svg { margin: 0 auto 16px; opacity: 0.3; }
+  .empty-state p { font-size: 14px; line-height: 1.7; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    #sidebar { width: 260px; }
+    #main { margin-left: 0; padding: 16px; }
+    #hamburger { display: block; }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 90;
+    }
+    .sidebar-overlay.show { display: block; }
+    .week-header p { font-size: 22px; }
+  }
+  @media (min-width: 701px) {
+    #sidebar.hidden-mobile { transform: translateX(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar" class="hidden-mobile">
+  <div class="sidebar-logo">
+    <h1>📡 IoT Exam Helper</h1>
+    <p>Smart Quiz Practice</p>
+  </div>
+  <div class="week-list" id="weekList"></div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+  <div class="top-bar">
+    <button id="hamburger" onclick="toggleSidebar()">☰</button>
+  </div>
+
+  <!-- Week header -->
+  <div class="week-header" id="weekHeader" style="display:none">
+    <h2 id="weekHeaderTitle"></h2>
+    <p id="weekHeaderSub"></p>
+  </div>
+
+  <!-- Start card -->
+  <div id="start-card">
+    <div class="glass-card">
+      <div class="start-card-inner">
+        <h3 id="start-title">Select a Week</h3>
+        <p id="start-desc">Choose a week from the sidebar to begin practising. Each answer gives instant feedback and explanation.</p>
+        <div id="start-btn-wrap" style="display:none">
+          <button class="btn-primary" onclick="startQuiz()">Start Quiz →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz area -->
+  <div id="quiz-area">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="question-card glass-card">
+      <div class="question-card-inner">
+        <div class="q-meta">
+          <span id="qCounter">Q1 / 5</span>
+          <span class="q-tag" id="qTag">IoT</span>
+        </div>
+        <div class="q-text" id="qText"></div>
+        <div class="options-list" id="optionsList"></div>
+        <div class="explanation-box" id="explanationBox">
+          <strong>Explanation:</strong> <span id="explanationText"></span>
+        </div>
+      </div>
+    </div>
+    <div class="quiz-nav">
+      <button class="btn-secondary" id="nextBtn" onclick="nextQuestion()" style="display:none">Next →</button>
+      <button class="btn-primary" id="submitBtn" onclick="submitExam()" style="display:none">Submit Exam</button>
+    </div>
+  </div>
+
+  <!-- Results area -->
+  <div id="results-area">
+    <div class="glass-card">
+      <div class="results-hero">
+        <div class="score-circle" id="scoreCircle">
+          <span class="score-text" id="scorePercText">0%</span>
+        </div>
+        <h2 id="resultsTitle">Quiz Complete!</h2>
+        <p id="resultsSubtitle"></p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box green"><div class="stat-num" id="statCorrect">0</div><div class="stat-label">Correct</div></div>
+        <div class="stat-box red"><div class="stat-num" id="statWrong">0</div><div class="stat-label">Wrong</div></div>
+        <div class="stat-box amber"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total</div></div>
+      </div>
+      <div class="past-scores" id="pastScoresSection" style="display:none">
+        <h4>📊 Score History for this Week</h4>
+        <div id="pastScoresList"></div>
+      </div>
+      <div class="results-actions">
+        <button class="premium-card" onclick="openUPIModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.8 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.2 6.3 19.9l1.1-6.5L2.7 8.8l6.5-.9L12 2z"/></svg>
+          <div>
+            <div class="premium-card-title">Scored low? Get the April 24th Master Cheat Sheet (PDF) for ₹49</div>
+            <div class="premium-card-sub">Tap to open UPI QR and unlock instant download</div>
+          </div>
+        </button>
+        <button class="btn-secondary" id="retryBtn" onclick="retryQuiz()">🔁 Retry This Week</button>
+        <button class="btn-secondary" id="homeBtn" onclick="goHome()">← Back to Home</button>
+      </div>
+      <div class="review-wrap" id="reviewSection" style="display:none">
+        <h4>🧠 Review Your Answers</h4>
+        <div id="reviewList"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- UPI Modal -->
+<div id="upi-modal" onclick="closeUPIModal(event)">
+  <div class="modal-inner">
+    <button class="modal-close" onclick="closeUPIModal(event)">✕</button>
+    <h3>⭐ Premium Cheat Sheet</h3>
+    <p>Scan this UPI QR to pay ₹49 and unlock the April 24th Master Cheat Sheet (PDF).</p>
+    <div class="qr-placeholder">
+      <!-- Replace src with your actual UPI QR image -->
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- QR code placeholder pattern -->
+        <rect width="100" height="100" fill="white"/>
+        <g fill="#000">
+          <rect x="5" y="5" width="30" height="30" rx="2"/><rect x="8" y="8" width="24" height="24" rx="1" fill="white"/><rect x="11" y="11" width="18" height="18" rx="1"/>
+          <rect x="65" y="5" width="30" height="30" rx="2"/><rect x="68" y="8" width="24" height="24" rx="1" fill="white"/><rect x="71" y="11" width="18" height="18" rx="1"/>
+          <rect x="5" y="65" width="30" height="30" rx="2"/><rect x="8" y="68" width="24" height="24" rx="1" fill="white"/><rect x="11" y="71" width="18" height="18" rx="1"/>
+          <rect x="40" y="5" width="6" height="6"/><rect x="50" y="5" width="6" height="6"/><rect x="40" y="15" width="6" height="6"/><rect x="50" y="15" width="6" height="6"/>
+          <rect x="40" y="40" width="6" height="6"/><rect x="50" y="40" width="6" height="6"/><rect x="60" y="40" width="6" height="6"/><rect x="40" y="50" width="6" height="6"/><rect x="60" y="50" width="6" height="6"/>
+          <rect x="65" y="40" width="6" height="6"/><rect x="75" y="40" width="6" height="6"/><rect x="85" y="40" width="6" height="6"/><rect x="65" y="50" width="6" height="6"/><rect x="75" y="50" width="6" height="6"/>
+          <rect x="40" y="65" width="6" height="6"/><rect x="50" y="65" width="6" height="6"/><rect x="60" y="65" width="6" height="6"/><rect x="40" y="75" width="6" height="6"/><rect x="50" y="75" width="6" height="6"/><rect x="60" y="75" width="6" height="6"/>
+          <rect x="65" y="65" width="6" height="6"/><rect x="75" y="65" width="6" height="6"/><rect x="85" y="65" width="6" height="6"/><rect x="65" y="75" width="6" height="6"/><rect x="75" y="75" width="6" height="6"/>
+        </g>
+      </svg>
+      <p>UPI QR CODE</p>
+    </div>
+    <div class="upi-id" id="upiIdDisplay">yourname@upi</div>
+    <p style="font-size:12px; color:#94a3b8;">Demo checkout flow: this is a placeholder QR for UI testing.</p>
+    <button class="btn-primary" onclick="closeUPIModal(event)">Verify &amp; Download</button>
+  </div>
+</div>
+
+<script>
+/* =============================================
+   QUIZ DATA
+   Structure: allQuestions['weekN'] = { title, topic, questions[] }
+   Each question: { q, options[], answer (0-indexed), explanation, tag }
+   Add your own weeks by copying the pattern below.
+   ============================================= */
+const allQuestions = {
+  week1: {
+  title: "Week 1",
+  topic: "Introduction to IoT",
+  questions: [
+    {
+      q: "What is the full form of the acronym 'IoT' as per the foundational course material?",
+      options: ["Internet of Things", "Interconnection of Things", "Interoperability of Things", "None of these"],
+      answer: 0,
+      explanation: "Direct recall is mandatory; NPTEL often uses 'None of these' as a trick for standard definitions.",
+      tag: "Acronyms & Basics"
+    },
+    {
+      q: "According to the lecture, the number of connected 'Things' is projected to cross which figure in the near future?",
+      options: ["9 billion", "12 billion", "20 billion", "Both a and c"],
+      answer: 2,
+      explanation: "The lecture specifically projects a growth crossing 20 billion nodes.",
+      tag: "Statistics"
+    },
+    {
+      q: "True or False: Analog sensors produce a discontinuous output signal or voltage which is proportional to the measured quantity.",
+      options: ["True", "False"],
+      answer: 1,
+      explanation: "False. Analog sensors produce a continuous output; this keyword swap is a common professor trap.",
+      tag: "Sensing"
+    },
+    {
+      q: "Which specific hardware module is identified in the course for distance measurement tasks?",
+      options: ["TSL2591", "HC-SR04", "DHT22", "All of these"],
+      answer: 1,
+      explanation: "Professors test specific hardware part numbers; HC-SR04 is the distance measuring module.",
+      tag: "Hardware"
+    },
+    {
+      q: "Which of the following are essential characteristics of an IoT system?",
+      options: ["Efficient and scalable architecture", "Unambiguous naming and addressing", "Intermittent connectivity", "All of these"],
+      answer: 3,
+      explanation: "The 'All of these' trap is used here for a list of valid features.",
+      tag: "Characteristics"
+    },
+    {
+      q: "Which of the following is NOT listed as an enabling technology for IoT in the introductory report?",
+      options: ["RFID", "Nanotechnology", "Human-to-Human Protocols", "Smart Networks"],
+      answer: 2,
+      explanation: "IoT enablers include RFID, Nano, Sensors, and Smart Networks, but not specifically H2H protocols.",
+      tag: "Enablers"
+    },
+    {
+      q: "In terms of IoT market share, the Manufacturing/Business sector accounts for approximately what percentage?",
+      options: ["30.3%", "40.2%", "8.3%", "7.7%"],
+      answer: 1,
+      explanation: "Verbatim statistics: Manufacturing is 40.2%, followed by Healthcare at 30.3%.",
+      tag: "Market Share"
+    },
+    {
+      q: "Which of the following devices went online for the first time in 1974, marking an early stage in connected device evolution?",
+      options: ["World Wide Web", "Smart Meters", "ATM", "Digital Locks"],
+      answer: 2,
+      explanation: "ATMs went online in 1974; the Web debuted in 1991.",
+      tag: "Evolution"
+    },
+    {
+      q: "What are the three distinct layers of connectivity services mentioned in the IoT architecture?",
+      options: ["Service, Local, and Global", "Physical, Data, and Network", "Sensor, Gateway, and Cloud", "None of these"],
+      answer: 0,
+      explanation: "The specific layers identified are Service, Local (Gateway), and Global (Internet).",
+      tag: "Architecture"
+    },
+    {
+      q: "Regarding the scope of connectivity, which statement is true according to the professor?",
+      options: ["M2M and IoT have identical scopes.", "IoT is a subset of M2M.", "M2M is a part of the IoT standard landscape.", "None of these"],
+      answer: 2,
+      explanation: "M2M is part of IoT, but IoT has a broader range of interactions.",
+      tag: "M2M vs IoT"
+    }
+  ]
+  },
+  week2: {
+  title: "Week 2",
+  topic: "IoT Networking & Protocols",
+  questions: [
+    {
+      q: "What is the full form of MQTT as defined in the context of IoT networking protocols?",
+      options: [
+        "Message Query Telemetry Transport",
+        "Message Queue Telemetry Transport",
+        "Message Queue Telemedicine Transport",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Acronym Recall: MQTT stands for Message Queue Telemetry Transport. NPTEL often uses very similar-looking distractors.",
+      tag: "Acronyms"
+    },
+    {
+      q: "Which architecture is specifically utilized by the XMPP protocol?",
+      options: [
+        "Publish-subscribe",
+        "Client-server",
+        "Peer-to-Peer",
+        "Both a and b"
+      ],
+      answer: 1,
+      explanation: "Protocol Logic: Unlike MQTT, XMPP primarily uses a client-server architecture.",
+      tag: "Architecture"
+    },
+    {
+      q: "In the Advanced Message Queuing Protocol (AMQP), which delivery guarantee ensures that a message is delivered certainly, even if it might be delivered multiple times?",
+      options: [
+        "At-most-once",
+        "At-least-once",
+        "Exactly-once",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Verbatim Logic: 'At-least-once' guarantees delivery but allows for duplicates. 'At-most-once' means it might not arrive at all.",
+      tag: "AMQP"
+    },
+    {
+      q: "The Constrained Application Protocol (CoAP) is designed to run over which transport layer protocol to reduce overhead?",
+      options: [
+        "TCP",
+        "UDP",
+        "SCTP",
+        "HTTP"
+      ],
+      answer: 1,
+      explanation: "Layer Specific: CoAP uses UDP to remain lightweight for constrained devices, unlike MQTT which typically uses TCP.",
+      tag: "Networking Layers"
+    },
+    {
+      q: "How many layers are defined in the standard Open Systems Interconnection (OSI) model?",
+      options: [
+        "4",
+        "6",
+        "9",
+        "None of these"
+      ],
+      answer: 3,
+      explanation: "The OSI model has exactly 7 layers. If '7' is not listed, 'None of these' is the required answer in the NPTEL pattern.",
+      tag: "Standards"
+    },
+    {
+      q: "Which of the following protocols are classified as 'Identification' protocols in the functionality-based IoT organization?",
+      options: [
+        "EPC and uCode",
+        "IPv6 and URIs",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "Classification Trap: EPC, uCode, IPv6, and URIs are all listed under the 'Identification' category in the lecture slides.",
+      tag: "Protocol Organization"
+    },
+    {
+      q: "True or False: The 6LoWPAN protocol is applicable to both general IoT and Industrial IoT (IIoT) environments.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Application Check: 6LoWPAN is a versatile connectivity protocol used across both standard and industrial IoT.",
+      tag: "T/F Trap"
+    },
+    {
+      q: "The 'Destination Address' field in an IPv4 packet header represents:",
+      options: [
+        "The address of the intermediate hop",
+        "The address of the destination node",
+        "Both a and b",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Verbatim Definition: In both IPv4 and IPv6, the destination address represents the final intended node, not intermediate hops.",
+      tag: "Networking"
+    },
+    {
+      q: "How many messaging modes are supported by the CoAP protocol layer?",
+      options: [
+        "2",
+        "4",
+        "7",
+        "8"
+      ],
+      answer: 1,
+      explanation: "Layer Minutiae: CoAP has exactly 4 messaging modes: Confirmable (CON), Non-confirmable (NON), Acknowledgement (ACK), and Reset (RST).",
+      tag: "CoAP"
+    },
+    {
+      q: "What is the basic data unit used for communication in the AMQP protocol?",
+      options: [
+        "Packet",
+        "Segment",
+        "Frame",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Technical Specifics: AMQP organizes communication into 'Frames'.",
+      tag: "Protocols"
+    }
+  ]
+},
+week3: {
+  title: "Week 3",
+  topic: "Connectivity Technologies",
+  questions: [
+    {
+      q: "What is the full form of the acronym HART in the context of industrial communication protocols?",
+      options: [
+        "High Accuracy Remote Transducer",
+        "Highway Addressable Remote Transducer",
+        "Highway Accessible Remote Tracking",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Mandatory Acronym Recall: HART stands for Highway Addressable Remote Transducer. NPTEL logic often uses 'None of these' for basic definitions.",
+      tag: "Acronyms"
+    },
+    {
+      q: "True or False: The architecture of the Wired HART protocol includes a dedicated Network Layer.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "Layer-Specific Logic: Unlike WirelessHART, there is no network layer in the Wired HART protocol.",
+      tag: "Architecture"
+    },
+    {
+      q: "Z-Wave technology operates at which specific frequency in the United States (US)?",
+      options: [
+        "868.42 MHz",
+        "908.42 MHz",
+        "2.4 GHz",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Technical Specification: Z-Wave uses 908.42 MHz in the US and 868.42 MHz in Europe. Distinguishing between these is a high-yield exam point.",
+      tag: "Standards"
+    },
+    {
+      q: "Which specific protocol in the Bluetooth stack is responsible for link establishment, authentication, and configuration?",
+      options: [
+        "L2CAP",
+        "Link Manager Protocol (LMP)",
+        "RFCOMM",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Layer/Sub-layer Focus: The Link Manager Protocol (LMP) handles the establishment and security of the link.",
+      tag: "Protocols"
+    },
+    {
+      q: "What is the common data rate used by Zigbee technology for communication?",
+      options: [
+        "250 Mbps",
+        "250 kbps",
+        "260 kbps",
+        "Both b and c"
+      ],
+      answer: 1,
+      explanation: "NPTEL Trap: Professors often swap 'kbps' with 'Mbps' to catch students rushing. Zigbee commonly uses 250 kbps.",
+      tag: "Specifications"
+    },
+    {
+      q: "The 'Dumb behavior' of sensor nodes, which is dependent on environmental conditions, is characterized as being:",
+      options: [
+        "Spatial in nature",
+        "Temporal in nature",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 1,
+      explanation: "Conceptual Vocabulary: Dumb behavior is specifically described as Temporal in nature.",
+      tag: "WSN Concepts"
+    },
+    {
+      q: "In a Z-Wave network, which specific message/mechanism is used to bypass radio dead-spots by rerouting signals?",
+      options: [
+        "Discovery",
+        "Healing",
+        "Hopping",
+        "All of these"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature/Features: Z-Wave uses a specific 'Healing' message to manage network reliability.",
+      tag: "Features"
+    },
+    {
+      q: "Zigbee technology is developed on top of which IEEE standard for low-rate wireless personal area networks?",
+      options: [
+        "IEEE 802.11",
+        "IEEE 802.3",
+        "IEEE 802.15.4",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Standard Recall: 802.15.4 is the foundational standard for Zigbee and 6LoWPAN.",
+      tag: "Standards"
+    },
+    {
+      q: "True or False: Sensor nodes in a typical Wireless Sensor Network (WSN) are considered to have unlimited battery life.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Sensor nodes have limited battery life. Swapping 'limited' for 'unlimited' is a classic professor check.",
+      tag: "WSN Basics"
+    },
+    {
+      q: "Which of the following are potential applications of Wireless Sensor Networks (WSNs) as discussed in the course?",
+      options: [
+        "Healthcare monitoring",
+        "Environmental sensing",
+        "Industrial automation",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: In 30-40% of application-based questions, all listed choices are valid.",
+      tag: "Applications"
+    }
+  ]
+},
+week4: {
+  title: "Week 4",
+  topic: "Sensor & UAV Networks",
+  questions: [
+    {
+      q: "What is the full form of M2SP in the context of Machine-to-Machine Communication?",
+      options: [
+        "M2M Stateless Platform",
+        "M2M Session Packet",
+        "M2M Secure Packaging",
+        "None of these"
+      ],
+      answer: 3,
+      explanation: "Mandatory Acronym Recall: M2SP stands for 'M2M Service Platform'. The 'None of these' trap is used here for an exact acronym expansion.",
+      tag: "Acronyms"
+    },
+    {
+      q: "In an agricultural IoT setup, which specific sensor is primarily used to sense the 'distance' at which an object is located?",
+      options: [
+        "PIR Sensor",
+        "Ultrasonic Sensor",
+        "DHT22",
+        "TSL2591"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature: While PIR detects motion, the Ultrasonic sensor is the specific hardware cited for distance measurement.",
+      tag: "Hardware"
+    },
+    {
+      q: "Which of the following is/are considered properties of a Flying Ad-hoc Network (FANET)?",
+      options: [
+        "Inter-plane communication",
+        "Intra-plane communication",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "FANET Logic: FANETs utilize both inter-plane and intra-plane communication models.",
+      tag: "UAV Networks"
+    },
+    {
+      q: "True or False: Machine-to-Machine (M2M) networks are typically characterized by a very small number of sensor nodes deployed over a limited area.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: M2M networks are actually characterized by a *large* number of nodes deployed over a *large* area. Swapping these is a common professor trap.",
+      tag: "M2M Basics"
+    },
+    {
+      q: "Which platform is responsible for providing integrated services based on the data-sets collected from devices?",
+      options: [
+        "M2M Application Platform",
+        "M2M Service Platform",
+        "M2M Hardware Platform",
+        "None of these"
+      ],
+      answer: 0,
+      explanation: "Platform Logic: The Application Platform provides the integrated services, while the Service Platform handles the underlying communication.",
+      tag: "Architecture"
+    },
+    {
+      q: "Wireless Multimedia Sensor Networks (WMSNs) can be utilized for which of the following applications?",
+      options: [
+        "Security surveillance",
+        "Wild-habitat monitoring",
+        "Environmental monitoring",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: In 30-40% of application-based questions, all listed choices are valid enabling scenarios for WMSNs.",
+      tag: "Applications"
+    },
+    {
+      q: "True or False: In a target tracking scenario, sensor nodes must periodically notify the Sink node to compute the target's position.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Process Recall: Target tracking involves periodic notification to the sink to maintain an updated position map.",
+      tag: "Target Tracking"
+    },
+    {
+      q: "Which of the following is NOT a feature of M2M area network management?",
+      options: [
+        "Low cost and low complexity",
+        "Energy efficiency",
+        "Minimized network management traffic",
+        "Maximized human intervention"
+      ],
+      answer: 3,
+      explanation: "Concept Check: M2M is defined by 'minimal or no human intervention'. 'Maximized human intervention' is a direct contradiction.",
+      tag: "M2M Features"
+    },
+    {
+      q: "In a target tracking setup, what is the role of a 'Cluster Head'?",
+      options: [
+        "To sense environmental data individually",
+        "To aggregate data from cluster members and notify the sink",
+        "To provide power to all other nodes",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Layer Logic: Cluster Heads act as intermediaries, aggregating data to improve efficiency before reaching the sink.",
+      tag: "Networking"
+    },
+    {
+      q: "True or False: Instead of a PIR sensor, a camera can be used in an agricultural field to detect intruders.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Hardware Versatility: Both PIR and cameras are valid hardware for intruder detection in smart agriculture.",
+      tag: "Hardware"
+    }
+  ]
+},
+week4: {
+  title: "Week 4",
+  topic: "Sensor & UAV Networks",
+  questions: [
+    {
+      q: "What is the full form of M2SP in the context of Machine-to-Machine Communication?",
+      options: [
+        "M2M Stateless Platform",
+        "M2M Session Packet",
+        "M2M Secure Packaging",
+        "None of these"
+      ],
+      answer: 3,
+      explanation: "Mandatory Acronym Recall: M2SP stands for 'M2M Service Platform'. The 'None of these' trap is used here for an exact acronym expansion.",
+      tag: "Acronyms"
+    },
+    {
+      q: "In an agricultural IoT setup, which specific sensor is primarily used to sense the 'distance' at which an object is located?",
+      options: [
+        "PIR Sensor",
+        "Ultrasonic Sensor",
+        "DHT22",
+        "TSL2591"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature: While PIR detects motion, the Ultrasonic sensor is the specific hardware cited for distance measurement.",
+      tag: "Hardware"
+    },
+    {
+      q: "Which of the following is/are considered properties of a Flying Ad-hoc Network (FANET)?",
+      options: [
+        "Inter-plane communication",
+        "Intra-plane communication",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "FANET Logic: FANETs utilize both inter-plane and intra-plane communication models.",
+      tag: "UAV Networks"
+    },
+    {
+      q: "True or False: Machine-to-Machine (M2M) networks are typically characterized by a very small number of sensor nodes deployed over a limited area.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: M2M networks are actually characterized by a *large* number of nodes deployed over a *large* area. Swapping these is a common professor trap.",
+      tag: "M2M Basics"
+    },
+    {
+      q: "Which platform is responsible for providing integrated services based on the data-sets collected from devices?",
+      options: [
+        "M2M Application Platform",
+        "M2M Service Platform",
+        "M2M Hardware Platform",
+        "None of these"
+      ],
+      answer: 0,
+      explanation: "Platform Logic: The Application Platform provides the integrated services, while the Service Platform handles the underlying communication.",
+      tag: "Architecture"
+    },
+    {
+      q: "Wireless Multimedia Sensor Networks (WMSNs) can be utilized for which of the following applications?",
+      options: [
+        "Security surveillance",
+        "Wild-habitat monitoring",
+        "Environmental monitoring",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: In 30-40% of application-based questions, all listed choices are valid enabling scenarios for WMSNs.",
+      tag: "Applications"
+    },
+    {
+      q: "True or False: In a target tracking scenario, sensor nodes must periodically notify the Sink node to compute the target's position.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Process Recall: Target tracking involves periodic notification to the sink to maintain an updated position map.",
+      tag: "Target Tracking"
+    },
+    {
+      q: "Which of the following is NOT a feature of M2M area network management?",
+      options: [
+        "Low cost and low complexity",
+        "Energy efficiency",
+        "Minimized network management traffic",
+        "Maximized human intervention"
+      ],
+      answer: 3,
+      explanation: "Concept Check: M2M is defined by 'minimal or no human intervention'. 'Maximized human intervention' is a direct contradiction.",
+      tag: "M2M Features"
+    },
+    {
+      q: "In a target tracking setup, what is the role of a 'Cluster Head'?",
+      options: [
+        "To sense environmental data individually",
+        "To aggregate data from cluster members and notify the sink",
+        "To provide power to all other nodes",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Layer Logic: Cluster Heads act as intermediaries, aggregating data to improve efficiency before reaching the sink.",
+      tag: "Networking"
+    },
+    {
+      q: "True or False: Instead of a PIR sensor, a camera can be used in an agricultural field to detect intruders.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Hardware Versatility: Both PIR and cameras are valid hardware for intruder detection in smart agriculture.",
+      tag: "Hardware"
+    }
+  ]
+},
+week5: {
+  title: "Week 5",
+  topic: "Interoperability & Arduino Programming",
+  questions: [
+    {
+      q: "What does the term 'Interoperability' refer to in an IoT environment?",
+      options: [
+        "The ability of a system to operate without an internet connection",
+        "The ability of different systems or products to work together without restrictions",
+        "The process of increasing the clock speed of a processor",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Definition Check: Interoperability ensures that interfaces are understood so products can work together. NPTEL often uses 'None of these' for basic definitions.",
+      tag: "Fundamentals"
+    },
+    {
+      q: "In the Collaborative Concept (Cosine) theory, an object is defined as a quadruple (A, B, C, D). What does the component 'C' represent?",
+      options: [
+        "The internal identifier",
+        "The natural language used",
+        "The context of A",
+        "The definition of the object"
+      ],
+      answer: 2,
+      explanation: "Technical Specification: In the quadruple (A, B, C, D), A is the object, B is the identifier, C is the context, and D is the definition.",
+      tag: "Cosine Theory"
+    },
+    {
+      q: "When using the Arduino Servo library, which function must be called to define the specific pin where the servo signal wire is connected?",
+      options: [
+        "servo.connect()",
+        "servo.pinMode()",
+        "servo.attach()",
+        "servo.write()"
+      ],
+      answer: 2,
+      explanation: "Hardware/Code Logic: The `attach()` function links the servo object to a specific physical pin (e.g., pin 9).",
+      tag: "Arduino"
+    },
+    {
+      q: "True or False: Syntactic interoperability is concerned with the actual 'meaning' or interpretation of the data being exchanged.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Semantic interoperability handles the meaning (interpretation). Syntactic interoperability handles the data formats and structures. Swapping these is a primary professor trap.",
+      tag: "Interoperability Types"
+    },
+    {
+      q: "Which specific microcontroller version was demonstrated in the lecture for motor control experiments?",
+      options: [
+        "Arduino Uno R3",
+        "Atmega 1280",
+        "Atmega 2560",
+        "Both b and c"
+      ],
+      answer: 3,
+      explanation: "Hardware Nomenclature: The lecture explicitly identifies both Atmega 2560 and Atmega 1280 as variations used for these Arduino boards.",
+      tag: "Hardware"
+    },
+    {
+      q: "What is the primary function of an 'Actuator' as defined in the course material?",
+      options: [
+        "To sense changes in the light spectrum",
+        "To convert energy or signals into physical motion",
+        "To store long-term data in a non-volatile manner",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Concept Check: Actuators are the 'muscles' of an IoT system, converting electrical signals into motion.",
+      tag: "Actuation"
+    },
+    {
+      q: "Which function in the Servo library is used to command a motor to rotate to a specific degree (e.g., 90 degrees)?",
+      options: [
+        "servo.move()",
+        "servo.rotate()",
+        "servo.write()",
+        "servo.turn()"
+      ],
+      answer: 2,
+      explanation: "Code Logic: The `write()` function takes a value (typically 0-180) to set the motor's position.",
+      tag: "Arduino"
+    },
+    {
+      q: "Interoperability challenges in IoT arise due to heterogeneity in which of the following areas?",
+      options: [
+        "Devices and Protocols",
+        "User Profiles",
+        "Data Formats",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: In 30-40% of questions about challenges or characteristics, all listed factors are valid.",
+      tag: "Challenges"
+    },
+    {
+      q: "True or False: UPM (User Profile Management) is a mechanism used to address interoperability issues specifically related to user diversity.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Acronym/Concept Recall: UPM is used to handle different user profiles and their specific requirements within the system.",
+      tag: "UPM"
+    },
+    {
+      q: "Regarding the 'Cosine' model for interoperability, the collaborative concept is essential for:",
+      options: [
+        "Device-to-device communication only",
+        "Handling heterogeneity across different IoT systems",
+        "Reducing the power consumption of sensors",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Logic Check: The collaborative concept is a high-level model designed to manage diversity/heterogeneity.",
+      tag: "Models"
+    }
+  ]
+},
+week6: {
+  title: "Week 6",
+  topic: "Python & Raspberry Pi Integration",
+  questions: [
+    {
+      q: "What is the output of the following Python code snippet: x = 'This is Python'; print(x[2:4])?",
+      options: [
+        "is",
+        "hi",
+        "is (with a leading space)",
+        "Th"
+      ],
+      answer: 0,
+      explanation: "Code Logic: Python slicing x[2:4] takes characters from index 2 up to, but not including, index 4. Indices are 2='i' and 3='s'.",
+      tag: "Python Syntax"
+    },
+    {
+      q: "What is the primary purpose of the 'try...except' block in Python programming for IoT?",
+      options: [
+        "To define a reusable function",
+        "To create a conditional loop",
+        "To handle exceptions and errors without crashing the program",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Exception Logic: Exception handlers are used for debugging and ensuring system stability in case of runtime errors.",
+      tag: "Programming"
+    },
+    {
+      q: "Which specific command is used to install the Adafruit DHT library on a Raspberry Pi after navigating to the source folder?",
+      options: [
+        "sudo apt-get install python",
+        "sudo python setup.py install",
+        "install dht_library",
+        "pip install dht"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature: The lecture explicitly cites 'sudo python setup.py install' as the installation command for this library.",
+      tag: "Installation"
+    },
+    {
+      q: "When using the Adafruit DHT library, which pin numbering configuration does the library use by default?",
+      options: [
+        "GPIO.BOARD",
+        "WiringPi",
+        "BCM (Broadcom SOC Channel)",
+        "Physical Pin Numbering"
+      ],
+      answer: 2,
+      explanation: "Technical Specification: The library automatically defaults to BCM mode, requiring the user to specify pins according to the SOC channel.",
+      tag: "Raspberry Pi"
+    },
+    {
+      q: "In a standard DHT sensor pinout, the 'Ground' (GND) is typically connected to which pin number?",
+      options: [
+        "Pin 1",
+        "Pin 2",
+        "Pin 3",
+        "Pin 4"
+      ],
+      answer: 3,
+      explanation: "Hardware Specifics: On a standard DHT sensor, the ground connection is located at pin 4.",
+      tag: "Hardware"
+    },
+    {
+      q: "True or False: Python is considered a heavyweight programming language that is difficult for beginners to learn for embedded systems.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: The lecture defines Python as a 'lightweight' scripting-like language that is 'not very difficult to learn'.",
+      tag: "Fundamentals"
+    },
+    {
+      q: "Which of the following is/are considered advantages of using Python for IoT application development?",
+      options: [
+        "Lightweight nature",
+        "Easy to learn/scripting-like",
+        "Support for platforms like Raspberry Pi",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: Python's popularity in IoT is due to its simplicity, footprint, and platform support.",
+      tag: "Fundamentals"
+    },
+    {
+      q: "In the demonstrated automated cooling system, the fan is programmed to turn ON when the detected temperature exceeds which threshold?",
+      options: [
+        "15°C",
+        "25°C",
+        "50°C",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Direct Extraction: The demonstration code specifically sets a threshold of 25°C to trigger the relay/fan.",
+      tag: "Applications"
+    },
+    {
+      q: "True or False: In a relay-based cooling system, an indicator light typically blinks to show that a corresponding relay has been activated.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Observation Check: The lecture highlights the blinking relay indicator as visual confirmation of the fan being triggered.",
+      tag: "Hardware"
+    },
+    {
+      q: "The GPIO.setmode(GPIO.BOARD) command in Python refers to:",
+      options: [
+        "The Broadcom SOC channel numbers",
+        "The physical pin numbers on the Raspberry Pi board",
+        "The software-defined virtual pins",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Pin Logic: GPIO.BOARD refers to the physical numbering of the pins on the board, whereas BCM refers to the channel.",
+      tag: "Raspberry Pi"
+    }
+  ]
+},
+week7: {
+  title: "Week 7",
+  topic: "Networking with Pi & Software Defined Networking",
+  questions: [
+    {
+      q: "In the context of Python socket programming on a Raspberry Pi server, what is the primary purpose of the socket.bind() function?",
+      options: [
+        "To establish a connection to a remote database",
+        "To associate the socket with a specific network interface and port number",
+        "To encrypt the data packets before transmission",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Code Logic: The bind() function links the socket to a specific local address and port so it can listen for traffic.",
+      tag: "Programming"
+    },
+    {
+      q: "Which specific Python library is used to interface a DHT (Digital Humidity and Temperature) sensor with a Raspberry Pi?",
+      options: [
+        "NumPy",
+        "Adafruit_DHT",
+        "Matplotlib",
+        "Pandas"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature: The Adafruit_DHT library is the specific software cited for DHT sensor integration in the course.",
+      tag: "Hardware/Libraries"
+    },
+    {
+      q: "Which type of socket was demonstrated in the lecture for datagram-based communication between the Pi client and the desktop server?",
+      options: [
+        "TCP Socket",
+        "UDP Socket",
+        "Raw Socket",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Layer Specific: The course uses UDP (User Datagram Protocol) for the Pi-to-Desktop communication demonstration.",
+      tag: "Networking"
+    },
+    {
+      q: "In the 'Software Defined IoT' architecture, where are flow classification and enhanced security mechanisms typically handled?",
+      options: [
+        "At the physical sensor nodes",
+        "At the Data Center Networks",
+        "At the user's mobile device",
+        "Neither a nor b"
+      ],
+      answer: 1,
+      explanation: "Architecture Logic: While sensors collect data, the heavy lifting of security and flow classification happens at the Data Center Networks.",
+      tag: "SDN Architecture"
+    },
+    {
+      q: "True or False: SDN-WISE is a stateless Software Defined solution for Wireless Sensor Networks.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: SDN-WISE is actually a *Stateful* solution where flow tables are available at the sensor nodes. Swapping 'stateful' for 'stateless' is a common trap.",
+      tag: "SDN-WISE"
+    },
+    {
+      q: "What does the acronym 'PDR' stand for in the context of network performance evaluation?",
+      options: [
+        "Protocol Data Register",
+        "Packet Delivery Ratio",
+        "Physical Device Router",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Mandatory Acronym Recall: PDR is the Packet Delivery Ratio, which was shown to improve using Soft-WSN.",
+      tag: "Acronyms"
+    },
+    {
+      q: "Which of the following is NOT one of the three main SDN protocols identified as the 'state of the art' in the lecture summary?",
+      options: [
+        "Soft-WSN",
+        "SDN-WISE",
+        "MQTT-SN",
+        "The protocol proposed by Low et al. (2012)"
+      ],
+      answer: 2,
+      explanation: "Direct Extraction: The lecture identifies SDN-WISE, Soft-WSN, and Low et al.'s solution as the prominent ones. MQTT-SN is a messaging protocol, not an SDN protocol.",
+      tag: "SDN Protocols"
+    },
+    {
+      q: "Regarding SDN, which 'plane' is responsible for the actual forwarding of data packets based on the rules received?",
+      options: [
+        "Control Plane",
+        "Application Plane",
+        "Data Plane",
+        "Management Plane"
+      ],
+      answer: 2,
+      explanation: "Architecture/Layer Logic: The Data Plane handles packet forwarding, while the Control Plane makes the decisions.",
+      tag: "SDN Architecture"
+    },
+    {
+      q: "In a Python UDP client, which function is used to send data to a specific server address and port?",
+      options: [
+        "socket.send()",
+        "socket.bind()",
+        "socket.sendto()",
+        "socket.accept()"
+      ],
+      answer: 2,
+      explanation: "Programming Technicality: UDP is connectionless, so `sendto()` is required to specify the destination for every packet.",
+      tag: "Programming"
+    },
+    {
+      q: "True or False: Soft-WSN implementation results in a lower Packet Delivery Ratio (PDR) compared to traditional WSN approaches.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Soft-WSN significantly *improves* (increases) the PDR over traditional approaches. Swapping 'improved' for 'lower' makes this false.",
+      tag: "Performance"
+    }
+  ]
+},
+week8: {
+  title: "Week 8",
+  topic: "Software-Defined IoT & Cloud Computing",
+  questions: [
+    {
+      q: "In the context of Software Defined Mobile Networks (SDMN), which solution proposes the use of an 'agent' placed at access points to communicate with the controller?",
+      options: ["uFlow", "Odin", "MobileFlow", "None of these"],
+      answer: 1,
+      explanation: "Architecture Recall: Odin is the specific agent-based solution for SDMNs.",
+      tag: "SDN Architecture"
+    },
+    {
+      q: "Which specific solution was proposed by the SWAN group for mobility-aware flow rule placement in IoT systems?",
+      options: ["Odin", "uFlow", "MobileFlow", "SDN-WISE"],
+      answer: 2,
+      explanation: "Concept Check: MobileFlow is the SWAN group's contribution for mobility-aware systems.",
+      tag: "Networking"
+    },
+    {
+      q: "When managing Data Center Networking via SDN, which type of flow requires 'exact match' rules for efficient processing?",
+      options: ["Mice flow", "Elephant flow", "Cheetah flow", "None of these"],
+      answer: 1,
+      explanation: "Technical Specification: Large-scale 'Elephant flows' require exact match rules, whereas smaller flows can use different logic.",
+      tag: "Data Centers"
+    },
+    {
+      q: "True or False: Traditional wireless mobile networks are highly scalable and flexible due to their decentralized control plane.",
+      options: ["True", "False"],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Traditional mobile networks are actually *difficult* to scale and have static over-provisioning. SDN is what provides the flexibility.",
+      tag: "T/F Trap"
+    },
+    {
+      q: "Which Java-based cloud simulation platform was developed by the team at the University of Melbourne?",
+      options: ["GreenCloud", "CloudSim", "iCanCloud", "All of these"],
+      answer: 1,
+      explanation: "Technical Details: CloudSim is the Java-based simulator from the University of Melbourne.",
+      tag: "Cloud Simulation"
+    },
+    {
+      q: "The GreenCloud simulation platform is specifically characterized as being:",
+      options: ["Energy-aware", "Memory-intensive", "Designed only for mobile apps", "None of these"],
+      answer: 0,
+      explanation: "Feature Recall: GreenCloud is used for monitoring energy consumption in networks and devices.",
+      tag: "Simulators"
+    },
+    {
+      q: "What is the primary difference between Microsoft Azure's PaaS and IaaS offerings?",
+      options: [
+        "PaaS is free while IaaS is paid",
+        "PaaS provides a dev environment; IaaS offers control over OS and infrastructure",
+        "IaaS is for cloud only; PaaS is for edge only",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Layer Logic: IaaS provides total infrastructure control; PaaS focuses on the application development platform.",
+      tag: "Cloud Platforms"
+    },
+    {
+      q: "Amazon's Virtual Private Cloud (VPC) feature allows a user to:",
+      options: [
+        "Logically separate a private cloud from the rest of the AWS cloud",
+        "Connect the VPC to their own local network",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "NPTEL Pattern: 'Both a and b' is often used for feature-rich services like Amazon VPC.",
+      tag: "Cloud Computing"
+    },
+    {
+      q: "Which of the following is an example of an 'Open Source' cloud platform?",
+      options: ["Amazon EC2", "Microsoft Azure", "OpenStack", "All of these"],
+      answer: 2,
+      explanation: "Classification Check: OpenStack is open-source; EC2 and Azure are commercial/paid platforms.",
+      tag: "Platforms"
+    },
+    {
+      q: "True or False: Software-Defined WSNs can improve overall network performance compared to traditional WSNs.",
+      options: ["True", "False"],
+      answer: 0,
+      explanation: "Direct Extraction: SDN approaches like Sensor OpenFlow and Soft-WSN are specifically intended to outperform traditional static WSNs.",
+      tag: "SDN Benefits"
+    }
+  ]
+},
+week9: {
+  title: "Week 9",
+  topic: "Sensor-Cloud & Fog Computing",
+  questions: [
+    {
+      q: "Which of the following tools is specifically identified in the course for installing the OpenStack cloud platform?",
+      options: [
+        "devstack",
+        "stack",
+        "Swift",
+        "All of these"
+      ],
+      answer: 0,
+      explanation: "Technical Procedure: The lecture specifically demonstrates 'devstack' as the tool for OpenStack installation.",
+      tag: "OpenStack"
+    },
+    {
+      q: "True or False: OpenStack is a proprietary, paid software platform used for building private and public clouds.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: OpenStack is open-source software. Swapping 'open-source' for 'proprietary/paid' is a common classification check.",
+      tag: "Cloud Platforms"
+    },
+    {
+      q: "When an OpenStack instance needs to connect to an external public network, which specific component must be initialized between them?",
+      options: [
+        "Database",
+        "File",
+        "Memory",
+        "Router"
+      ],
+      answer: 3,
+      explanation: "Architecture Logic: A Router is the necessary component to interface an instance with the public internet.",
+      tag: "OpenStack"
+    },
+    {
+      q: "Which of the following are listed as fundamental limitations of Wireless Sensor Networks (WSNs)?",
+      options: [
+        "Procurement",
+        "Deployment",
+        "Maintenance",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: WSNs face challenges in procurement, large-scale deployment, and long-term maintenance.",
+      tag: "WSN Limitations"
+    },
+    {
+      q: "The concept that enables physical hardware to be shared among multiple entities is known as:",
+      options: [
+        "Hardware virtualization",
+        "Software virtualization",
+        "Module virtualization",
+        "None of these"
+      ],
+      answer: 0,
+      explanation: "Verbatim Definition: Hardware virtualization is the specific concept cited for sharing physical resources among multiple entities.",
+      tag: "Virtualization"
+    },
+    {
+      q: "Fog computing supports which of the following primary advantages for IoT deployments?",
+      options: [
+        "Anywhere deployability",
+        "Mobility",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "NPTEL Logic: Fog computing is specifically characterized by its ability to be deployed anywhere and its support for mobile nodes.",
+      tag: "Fog Computing"
+    },
+    {
+      q: "To which of the following are 'Fog Nodes' typically connected in a standard architecture?",
+      options: [
+        "IoT devices",
+        "The Cloud",
+        "Neither a nor b",
+        "Both a and b"
+      ],
+      answer: 3,
+      explanation: "Architecture Logic: Fog nodes act as an intermediary layer, connecting downward to IoT devices and upward to the cloud.",
+      tag: "Fog Architecture"
+    },
+    {
+      q: "Regarding data sensitivity in Fog and Sensor-Cloud environments, what are the types of data identified based on sensitivity?",
+      options: [
+        "Time-sensitive",
+        "Less time-sensitive",
+        "Not time-sensitive",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "Classification Check: The course categorizes data into three distinct levels of time-sensitivity.",
+      tag: "Data Analysis"
+    },
+    {
+      q: "True or False: The benefits of fog technology can be extended to large-scale environments like huge farms due to its scalable architecture.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 0,
+      explanation: "Application Logic: Fog computing is a scalable architecture suitable for large-scale real-time analysis and monitoring.",
+      tag: "Scalability"
+    },
+    {
+      q: "What is the primary value-add of fog technology for real-time applications?",
+      options: [
+        "Permanent data archival",
+        "Real-time analysis and monitoring",
+        "Decreasing the number of sensors",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Feature Recall: Real-time analysis and monitoring are the core advantages of moving computation to the fog layer.",
+      tag: "Fog Computing"
+    }
+  ]
+},
+week10: {
+  title: "Week 10",
+  topic: "Smart Cities & Connected Vehicles",
+  questions: [
+    {
+      q: "In the context of modern infrastructure, a 'Smart City' is primarily defined as a/an:",
+      options: ["Local system", "Rural system", "Urban system", "None of these"],
+      answer: 2,
+      explanation: "Definition Check: The course explicitly defines a Smart City as an urban system integrating multiple infrastructure layers.",
+      tag: "Fundamentals"
+    },
+    {
+      q: "Which of the following is an area of focus in the development of Smart Parking lots?",
+      options: [
+        "Auto-routing of vehicles",
+        "Auto-charging of vehicles",
+        "Detection of available slots",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "The 'All of these' Pattern: Features and areas of focus in Smart Cities almost always result in 'All of these' as the correct answer.",
+      tag: "Smart City"
+    },
+    {
+      q: "Which of the following statements is/are true regarding 'Smart Health' implementation?",
+      options: [
+        "It is low-cost and portable",
+        "It allows for remote check-ups and diagnosis",
+        "It enables effortless health monitoring",
+        "All of the above"
+      ],
+      answer: 3,
+      explanation: "Feature Recall: Smart health aims for portability, remote accessibility, and ease of monitoring.",
+      tag: "Smart Health"
+    },
+    {
+      q: "In Vehicle-to-Human (V2H) or Human-to-Vehicle (H2V) interaction, where is the human typically located during communication?",
+      options: [
+        "Inside the vehicle",
+        "In another vehicle",
+        "Outside the vehicle on the roadside",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Technical Specification: V2H specifically concerns interaction with humans outside the vehicle, such as pedestrians or roadside workers.",
+      tag: "V2X"
+    },
+    {
+      q: "Communication in Intelligent Connected Vehicles (ICVs) is primarily based on which standard?",
+      options: [
+        "Dedicated Short Range Communication (DSRC)",
+        "Directed Short Range Communication",
+        "Dedicated Small Range Communication",
+        "None of these"
+      ],
+      answer: 0,
+      explanation: "Hardware/Protocol Nomenclature: DSRC is the specific communication standard cited for ICVs. Watch out for similar-sounding distractors.",
+      tag: "Standards"
+    },
+    {
+      q: "What are the two primary domains identified within a Vehicular Ad-hoc Network (VANET)?",
+      options: [
+        "In-vehicle and Ad-hoc",
+        "Cloud and Edge",
+        "Static and Dynamic",
+        "None of these"
+      ],
+      answer: 0,
+      explanation: "Domain Logic: VANET is split into the in-vehicle domain (local to the car) and the ad-hoc domain (car-to-car/infrastructure).",
+      tag: "VANET"
+    },
+    {
+      q: "True or False: In the Ad-hoc domain of a VANET, the vehicles are required to remain stationary to maintain network stability.",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Vehicles are inherently mobile in the ad-hoc domain; saying they 'cannot be mobile' is a common exam trick.",
+      tag: "T/F Trap"
+    },
+    {
+      q: "What does the 'Smart Grid' primarily utilize to ensure efficient electricity distribution?",
+      options: [
+        "One-way power flow",
+        "Manual meter reading",
+        "Two-way communication and electricity flow",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Concept Check: The defining feature of a Smart Grid is the integration of digital technology for two-way interactions.",
+      tag: "Smart Grid"
+    },
+    {
+      q: "Which of the following is a primary security concern or disadvantage cited for connected vehicles?",
+      options: [
+        "Tracking of vehicle movements",
+        "Localization of positions by unauthorized entities",
+        "Secondary unintended use of data",
+        "All of these"
+      ],
+      answer: 3,
+      explanation: "Security Logic: Privacy risks include tracking, unauthorized localization, and data misuse.",
+      tag: "Security"
+    },
+    {
+      q: "What does the acronym 'V2P' stand for in the context of connected vehicle communication?",
+      options: [
+        "Vehicle-to-Parking",
+        "Vehicle-to-Pedestrian",
+        "Vehicle-to-Phone",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Acronym Recall: V2P is the standard acronym for Vehicle-to-Pedestrian communication.",
+      tag: "Acronyms"
+    }
+  ]
+},
+week11: {
+  title: "Week 11",
+  topic: "Smart Grid, IIoT & Big Data Analytics",
+  questions: [
+    {
+      q: "Which of the following terms is officially used in the course as a synonymous name for a Smart Grid?",
+      options: ["Energy internet", "Electricity with a hand", "Electrolyte", "None of these"],
+      answer: 0,
+      explanation: "Mandatory Terminology Recall: Smart grids are also known as 'Electricity with a brain', 'Energy internet', and 'Electronet'.",
+      tag: "Smart Grid"
+    },
+    {
+      q: "Compared to the traditional electrical grid, a Smart Grid enables which type of energy flow?",
+      options: ["Unidirectional", "Bidirectional", "Both a and b", "Neither a nor b"],
+      answer: 1,
+      explanation: "Architecture Logic: Traditional grids are unidirectional (power plant to home); Smart Grids are bidirectional, allowing consumers to also provide energy back to the grid.",
+      tag: "Architecture"
+    },
+    {
+      q: "In the context of Smart Grids, what is the specific term used when a home draws power independently from distributed resources?",
+      options: ["Peaking", "Islanding", "Isolation", "None of these"],
+      answer: 1,
+      explanation: "Vocabulary Check: Islanding is the core concept where a home operates on its own distributed power resources.",
+      tag: "Terminology"
+    },
+    {
+      q: "Which hardware component is responsible for sampling voltage and current with a fixed sample rate at an installed location in the grid?",
+      options: ["PEVS", "DAUs", "PMUs", "HDFS"],
+      answer: 2,
+      explanation: "Hardware Nomenclature: PMUs (Phasor Measurement Units) are the specific devices cited for high-fidelity grid sampling.",
+      tag: "Hardware"
+    },
+    {
+      q: "True or False: Lack of vision and leadership is NOT considered a hindrance in the path of success for Industrial IoT (IIoT) implementation.",
+      options: ["True", "False"],
+      answer: 1,
+      explanation: "T/F Keyword Swap: The lecture explicitly lists 'Lack of vision and leadership' as a primary hindrance. Swapping 'a hindrance' to 'not a hindrance' is a classic professor trap.",
+      tag: "IIoT"
+    },
+    {
+      q: "Big Data in the context of IoT analytics is characterized by how many specific 'Vs' according to the course material?",
+      options: ["3 Vs", "5 Vs", "7 Vs", "10 Vs"],
+      answer: 2,
+      explanation: "Technical Specification: While some frameworks use 3 or 5, this course defines Big Data by exactly 7 Vs.",
+      tag: "Big Data"
+    },
+    {
+      q: "What is the correct logical sequence for the flow of data processing in an IoT system?",
+      options: [
+        "Acquisition > Generation > Storage > Analysis",
+        "Generation > Storage > Analysis > Acquisition",
+        "Generation > Acquisition > Storage > Analysis",
+        "None of these"
+      ],
+      answer: 2,
+      explanation: "Process Logic: Data must be Generated, then Acquired by the system, then Stored, and finally Analyzed for insights.",
+      tag: "Data Flow"
+    },
+    {
+      q: "Hadoop is primarily used for which of the following architectural tasks?",
+      options: [
+        "Distributed processing of large datasets",
+        "Managing large clusters of computers",
+        "Both a and b",
+        "Neither a nor b"
+      ],
+      answer: 2,
+      explanation: "The 'Both a and b' Pattern: Hadoop is the foundational platform for both distributed processing and cluster management in Big Data.",
+      tag: "Hadoop"
+    },
+    {
+      q: "In the Hadoop Distributed File System (HDFS) architecture, which node acts as the master and stores the metadata?",
+      options: ["Data Node", "Name Node", "Slave Node", "Task Tracker"],
+      answer: 1,
+      explanation: "Architecture/Layer Logic: The Name Node is the master that holds the file system metadata; the Data Nodes store the actual content.",
+      tag: "HDFS Architecture"
+    },
+    {
+      q: "True or False: In a Hadoop master-slave architecture, the 'Job Tracker' in the Name Node is linked with the 'Task Tracker' in the Data Node.",
+      options: ["True", "False"],
+      answer: 0,
+      explanation: "Technical Detail: The MapReduce layer specifically links the master's Job Tracker to the slave's Task Tracker for execution.",
+      tag: "Hadoop Logic"
+    }
+  ]
+},
+week12: {
+  title: "Week 12",
+  topic: "Data Handling & Analytics",
+  questions: [
+    {
+      q: "Data analytics (DA) is fundamentally categorized into which two broad types in the course?",
+      options: ["Descriptive and Predictive", "Qualitative and Quantitative", "Structural and Functional", "None of these"],
+      answer: 1,
+      explanation: "Definition Check: The course explicitly divides data analysis into Qualitative and Quantitative types.",
+      tag: "Fundamentals"
+    },
+    {
+      q: "Which of the following is/are considered basic principles of qualitative analysis?",
+      options: ["Notice things", "Think about things", "Collect things", "All of these"],
+      answer: 3,
+      explanation: "Process Recall: The fundamental cycle of qualitative analysis involves noticing, thinking, and collecting. NPTEL often uses 'All of these' for list-based principles.",
+      tag: "Qualitative Analysis"
+    },
+    {
+      q: "To perform an Analysis of Variance (ANOVA), which specific combination of variables is required?",
+      options: [
+        "Discrete response and categorical factor",
+        "Continuous response and categorical factor",
+        "Continuous response and quantitative factor",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "Technical Specification: ANOVA specifically requires a continuous response variable and at least one categorical factor.",
+      tag: "Statistics"
+    },
+    {
+      q: "In the context of activity monitoring, which set of inbuilt sensors is typically found in high-end smartphones?",
+      options: [
+        "ECG, EEG, and GPS",
+        "Accelerometer, Compass, and Gyroscope",
+        "Accelerometer and NPK sensor",
+        "Pressure sensor and EEG"
+      ],
+      answer: 1,
+      explanation: "Hardware Nomenclature: High-end smartphones use Accelerometers, Compasses, and Gyroscopes for tracking.",
+      tag: "Hardware"
+    },
+    {
+      q: "When processing handheld activity device data using AI, what is a primary health-related application?",
+      options: ["Blood pressure regulation", "Fall detection", "Vehicle speed detection", "None of these"],
+      answer: 1,
+      explanation: "Application Focus: Fall detection is the specific application highlighted for AI-processed handheld sensor data.",
+      tag: "Applications"
+    },
+    {
+      q: "True or False: Deep learning techniques are strictly limited to numerical sensor data and cannot process images or videos in IoT frameworks.",
+      options: ["True", "False"],
+      answer: 1,
+      explanation: "T/F Keyword Swap: Deep learning is highly effective for sensor data, images, and videos. 'Cannot' makes this statement false.",
+      tag: "Deep Learning"
+    },
+    {
+      q: "According to the course, which of the following is considered the most 'primitive' or common tool for making sense of stored data?",
+      options: ["Neural Networks", "Statistical methods", "Blockchain", "Quantum Computing"],
+      answer: 1,
+      explanation: "Direct Extraction: Statistical methods are identified as the most common and primitive tools for data insight.",
+      tag: "Analytics"
+    },
+    {
+      q: "In a robust fall detection system, how does the server verify if a detected fall was not an 'accidental bump'?",
+      options: [
+        "By analyzing the GPS coordinates",
+        "By asking the phone user for confirmation",
+        "By checking the battery level",
+        "None of these"
+      ],
+      answer: 1,
+      explanation: "System Logic: The server requests feedback from the user to differentiate a real fall from an accidental jerk.",
+      tag: "Logic"
+    },
+    {
+      q: "True or False: Continuous monitoring is useful for observing behavior and identifying repetitive activity patterns.",
+      options: ["True", "False"],
+      answer: 0,
+      explanation: "Verbatim Principle: Continuous monitoring is essential for identifying patterns in behavioral data.",
+      tag: "Monitoring"
+    },
+    {
+      q: "Data analytics technologies enable organizations to make more informed decisions and help researchers verify or disprove which of the following?",
+      options: ["Scientific models", "Theories", "Hypotheses", "All of these"],
+      answer: 3,
+      explanation: "The 'All of these' Trap: Analytics is used to test models, theories, and hypotheses across various fields.",
+      tag: "General"
+    }
+  ]
+},
+
+
+};
+
+/* =============================================
+   CONFIG — Customise as needed
+   ============================================= */
+const CONFIG = {
+  mockQsPerWeek: 5,           // questions sampled per week for Mock Exam
+  upiId: 'yourname@upi',      // ← Replace with your UPI ID
+  premiumPrice: '₹49',
+  totalWeeks: 12
+};
+
+/* =============================================
+   DERIVED HELPERS
+   Returns sorted array of week keys that exist in allQuestions
+   and have at least one question.
+   ============================================= */
+function availableWeekKeys() {
+  return Object.keys(allQuestions)
+    .filter(k => allQuestions[k].questions && allQuestions[k].questions.length > 0)
+    .sort((a, b) => weekNum(a) - weekNum(b));
+}
+
+function weekNum(key) {
+  const m = key.match(/\d+/);
+  return m ? parseInt(m[0]) : 999;
+}
+
+/* =============================================
+   STATE
+   currentWeek: 'week1' | 'week2' | ... | 'mock' | null
+   ============================================= */
+let state = {
+  currentWeek: null,
+  currentScreen: 'home',
+  questions: [],
+  currentQIdx: 0,
+  answers: [],
+  quizActive: false
+};
+const QUIZ_LOCK_KEY = 'iot_quiz_in_progress';
+
+/* =============================================
+   INIT
+   ============================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('upiIdDisplay').textContent = CONFIG.upiId;
+  buildSidebar();
+  if (!restoreQuizProgress()) goHome();
+  window.addEventListener('beforeunload', (event) => {
+    if (!state.quizActive) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+});
+
+/* =============================================
+   SIDEBAR BUILD
+   Weeks are read from allQuestions keys.
+   Weeks 1-12 not yet in allQuestions show as dimmed placeholders.
+   A "Mock Exam" entry always appears at the bottom.
+   ============================================= */
+function buildSidebar() {
+  const list = document.getElementById('weekList');
+  list.innerHTML = '';
+
+  for (let w = 1; w <= CONFIG.totalWeeks; w++) {
+    const key = `week${w}`;
+    const data = allQuestions[key];
+    const hasQ = data && data.questions && data.questions.length > 0;
+    const scores = getScores(key);
+    const bestScore = scores.length ? Math.max(...scores.map(s => s.pct)) : null;
+    const icon = w <= 4 ? '📶' : w <= 8 ? '⚙️' : '🔒';
+
+    const btn = document.createElement('button');
+    btn.className = 'week-btn';
+    btn.id = `weekBtn_${key}`;
+    btn.onclick = () => routeTo(key);
+    btn.innerHTML = `
+      <span style="font-size:14px">${icon}</span>
+      ${data ? data.title : `Week ${w}`}
+      ${bestScore !== null ? `<span class="score-pill">${bestScore}%</span>` : ''}
+    `;
+    if (!hasQ) { btn.style.opacity = '0.4'; btn.title = 'No questions added yet'; }
+    list.appendChild(btn);
+  }
+
+  /* Mock Exam button */
+  const mockBtn = document.createElement('button');
+  mockBtn.className = 'week-btn';
+  mockBtn.id = 'weekBtn_mock';
+  mockBtn.onclick = () => routeTo('mock');
+  const mockScores = getScores('mock');
+  const mockBest = mockScores.length ? Math.max(...mockScores.map(s => s.pct)) : null;
+  const weeksAvail = availableWeekKeys().length;
+  mockBtn.innerHTML = `
+    <span style="font-size:14px">🎯</span>
+    Mock Exam
+    <span class="score-pill" style="background:rgba(245,158,11,0.2);color:#f59e0b">
+      ${weeksAvail > 0 ? weeksAvail + 'wks' : '—'}
+    </span>
+    ${mockBest !== null ? `<span class="score-pill">${mockBest}%</span>` : ''}
+  `;
+  mockBtn.style.marginTop = '8px';
+  mockBtn.style.borderTop = '1px solid rgba(255,255,255,0.08)';
+  mockBtn.style.paddingTop = '12px';
+  if (weeksAvail === 0) { mockBtn.style.opacity = '0.4'; mockBtn.title = 'Add questions to at least one week first'; }
+  list.appendChild(mockBtn);
+}
+
+/* =============================================
+   ROUTING — single entry point for sidebar clicks
+   key: 'week1'..'week12' or 'mock'
+   ============================================= */
+function routeTo(key) {
+  if (state.quizActive) return;
+  /* Reset any active quiz cleanly */
+  state.quizActive = false;
+  state.currentScreen = 'start';
+  state.currentWeek = key;
+  state.answers = [];
+  state.questions = [];
+  state.currentQIdx = 0;
+
+  /* Update active highlight */
+  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById(`weekBtn_${key}`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  hide('quiz-area');
+  hide('results-area');
+  show('start-card');
+  show('weekHeader');
+
+  if (key === 'mock') {
+    renderMockStartCard();
+  } else {
+    renderWeekStartCard(key);
+  }
+
+  setQuizLock(false);
+  clearQuizProgress();
+  closeSidebar();
+}
+
+/* Render start card for a specific week */
+function renderWeekStartCard(key) {
+  const data = allQuestions[key];
+  if (!data || !data.questions.length) {
+    document.getElementById('weekHeaderTitle').textContent = data ? data.title : key;
+    document.getElementById('weekHeaderSub').textContent = 'No questions yet';
+    document.getElementById('start-title').textContent = 'Coming Soon';
+    document.getElementById('start-desc').textContent =
+      'Questions for this week have not been added to allQuestions yet. Add them using the same structure as the existing weeks.';
+    document.getElementById('start-btn-wrap').style.display = 'none';
+    return;
+  }
+  document.getElementById('weekHeaderTitle').textContent = data.title;
+  document.getElementById('weekHeaderSub').textContent = data.topic;
+  document.getElementById('start-title').textContent = `Ready for ${data.title}?`;
+  document.getElementById('start-desc').textContent =
+    `Topic: ${data.topic}. ${data.questions.length} questions with instant feedback and explanation after each answer.`;
+  document.getElementById('start-btn-wrap').style.display = 'block';
+}
+
+/* Render start card for Mock Exam */
+function renderMockStartCard() {
+  const weeks = availableWeekKeys();
+  const totalQ = weeks.length * CONFIG.mockQsPerWeek;
+  document.getElementById('weekHeaderTitle').textContent = '🎯 Mock Exam';
+  document.getElementById('weekHeaderSub').textContent =
+    weeks.length > 0
+      ? `${CONFIG.mockQsPerWeek} random questions × ${weeks.length} weeks = ${totalQ} questions`
+      : 'No weeks available yet';
+  document.getElementById('start-title').textContent = 'Full Mock Exam';
+  document.getElementById('start-desc').textContent =
+    weeks.length > 0
+      ? `This mock randomly picks ${CONFIG.mockQsPerWeek} questions from each of your ${weeks.length} available week(s), giving you ${totalQ} questions total with instant feedback.`
+      : 'Add questions to at least one week to enable the Mock Exam.';
+  document.getElementById('start-btn-wrap').style.display = weeks.length > 0 ? 'block' : 'none';
+}
+
+/* =============================================
+   QUIZ START
+   Handles both week and mock routing.
+   ============================================= */
+function startQuiz() {
+  let pool = [];
+
+  if (state.currentWeek === 'mock') {
+    /* Mock Exam: sample CONFIG.mockQsPerWeek from each available week */
+    availableWeekKeys().forEach(key => {
+      const qs = shuffle([...allQuestions[key].questions]);
+      pool.push(...qs.slice(0, CONFIG.mockQsPerWeek).map(q => ({ ...q, _week: allQuestions[key].title })));
+    });
+    pool = shuffle(pool);
+  } else {
+    const data = allQuestions[state.currentWeek];
+    if (!data) return;
+    pool = shuffle([...data.questions]);
+  }
+
+  if (pool.length === 0) return;
+
+  state.questions = pool;
+  state.currentQIdx = 0;
+  state.answers = [];
+  state.quizActive = true;
+  state.currentScreen = 'quiz';
+
+  hide('start-card');
+  hide('weekHeader');
+  hide('results-area');
+  show('quiz-area');
+  setQuizLock(true);
+  persistQuizProgress();
+  renderQuestion();
+}
+
+/* =============================================
+   QUESTION RENDER
+   ============================================= */
+function renderQuestion() {
+  const q = state.questions[state.currentQIdx];
+  const total = state.questions.length;
+  const idx = state.currentQIdx;
+  const pct = Math.round((idx / total) * 100);
+
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('qCounter').textContent = `Q${idx + 1} / ${total}`;
+  const tagLabel = q._week ? `${q._week} · ${q.tag || 'IoT'}` : (q.tag || 'IoT');
+  document.getElementById('qTag').textContent = tagLabel;
+  document.getElementById('qText').textContent = q.q;
+
+  const expBox = document.getElementById('explanationBox');
+  expBox.classList.remove('visible');
+
+  const ol = document.getElementById('optionsList');
+  ol.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.onclick = () => selectOption(i, btn, q);
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    ol.appendChild(btn);
+  });
+
+  document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('submitBtn').style.display = 'none';
+
+  const savedAnswer = state.answers[idx];
+  if (savedAnswer && typeof savedAnswer.selected === 'number') {
+    const allBtns = document.querySelectorAll('.option-btn');
+    allBtns.forEach((b, i) => {
+      b.disabled = true;
+      if (i === q.answer) b.classList.add('correct');
+      if (i === savedAnswer.selected && savedAnswer.selected !== q.answer) b.classList.add('wrong');
+    });
+    const expBox = document.getElementById('explanationBox');
+    document.getElementById('explanationText').textContent = q.explanation || 'No explanation provided.';
+    expBox.classList.add('visible');
+
+    const isLast = state.currentQIdx === state.questions.length - 1;
+    if (isLast) {
+      document.getElementById('submitBtn').style.display = 'block';
+    } else {
+      document.getElementById('nextBtn').style.display = 'block';
+    }
+  }
+}
+
+function selectOption(idx, clickedBtn, q) {
+  if (!state.quizActive) return;
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+
+  const isCorrect = idx === q.answer;
+  state.answers[state.currentQIdx] = { selected: idx, correct: q.answer };
+
+  allBtns.forEach((b, i) => {
+    if (i === q.answer) b.classList.add('correct');
+    if (i === idx && !isCorrect) b.classList.add('wrong');
+  });
+  const expBox = document.getElementById('explanationBox');
+  document.getElementById('explanationText').textContent = q.explanation || 'No explanation provided.';
+  expBox.classList.add('visible');
+
+  const isLast = state.currentQIdx === state.questions.length - 1;
+  if (isLast) {
+    document.getElementById('submitBtn').style.display = 'block';
+  } else {
+    document.getElementById('nextBtn').style.display = 'block';
+  }
+  persistQuizProgress();
+}
+
+function nextQuestion() {
+  if (!state.answers[state.currentQIdx]) return;
+  state.currentQIdx++;
+  persistQuizProgress();
+  renderQuestion();
+}
+
+/* =============================================
+   EXAM SUBMIT
+   ============================================= */
+function submitExam() {
+  state.quizActive = false;
+  state.currentScreen = 'results';
+  setQuizLock(false);
+  clearQuizProgress();
+  saveScore();
+  showResults();
+}
+
+/* =============================================
+   RESULTS
+   ============================================= */
+function showResults() {
+  const correct = state.answers.filter(a => a.selected === a.correct).length;
+  const total = state.answers.length;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  hide('quiz-area');
+  hide('start-card');
+  show('results-area');
+
+  document.getElementById('scoreCircle').style.setProperty('--pct', pct);
+  document.getElementById('scorePercText').textContent = pct + '%';
+  document.getElementById('statCorrect').textContent = correct;
+  document.getElementById('statWrong').textContent = total - correct;
+  document.getElementById('statTotal').textContent = total;
+
+  const weekLabel = state.currentWeek === 'mock'
+    ? 'Mock Exam'
+    : (allQuestions[state.currentWeek] ? allQuestions[state.currentWeek].title : state.currentWeek);
+  document.getElementById('resultsTitle').textContent =
+    pct >= 80 ? '🎉 Excellent Work!' : pct >= 50 ? '👍 Good Effort!' : '📚 Keep Practising';
+  document.getElementById('resultsSubtitle').textContent =
+    total > 0
+      ? `You scored ${correct}/${total} on ${weekLabel}`
+      : `Select a week and start a quiz to see your score here.`;
+  document.getElementById('retryBtn').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('homeBtn').style.display = total > 0 ? 'block' : 'none';
+
+  const scores = getScores(state.currentWeek);
+  const section = document.getElementById('pastScoresSection');
+  if (scores.length > 0) {
+    section.style.display = 'block';
+    const list = document.getElementById('pastScoresList');
+    list.innerHTML = scores.slice(-5).reverse().map(s => `
+      <div class="score-history-row">
+        <span style="color:var(--text-muted)">${s.date}</span>
+        <span style="color:var(--text-muted)">${s.mode}</span>
+        <span style="color:${s.pct >= 80 ? 'var(--success)' : s.pct >= 50 ? 'var(--warn)' : 'var(--danger)'}; font-weight:600">${s.pct}%</span>
+      </div>
+    `).join('');
+  } else {
+    section.style.display = 'none';
+  }
+
+  const reviewSection = document.getElementById('reviewSection');
+  const reviewList = document.getElementById('reviewList');
+  if (total > 0) {
+    reviewSection.style.display = 'block';
+    reviewList.innerHTML = state.questions.map((q, i) => {
+      const a = state.answers[i] || {};
+      const pickedIdx = typeof a.selected === 'number' ? a.selected : -1;
+      const correctIdx = q.answer;
+      const pickedText = pickedIdx >= 0 ? q.options[pickedIdx] : 'Not answered';
+      const correctText = q.options[correctIdx];
+      const pickedClass = pickedIdx === correctIdx ? 'picked-correct' : 'picked-wrong';
+      return `
+        <div class="review-item">
+          <div class="review-q">${i + 1}. ${q.q}</div>
+          <div class="review-answer">Your answer: <span class="${pickedClass}">${pickedText}</span></div>
+          <div class="review-answer">Correct answer: <span class="actual-correct">${correctText}</span></div>
+          <div class="review-exp"><strong style="color:var(--accent-light)">Explanation:</strong> ${q.explanation || 'No explanation provided.'}</div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    reviewSection.style.display = 'none';
+    reviewList.innerHTML = '';
+  }
+
+  buildSidebar();
+}
+
+/* =============================================
+   LOCAL STORAGE — Scores
+   ============================================= */
+function getScores(weekKey) {
+  try {
+    return JSON.parse(localStorage.getItem(`iot_scores_${weekKey}`) || '[]');
+  } catch { return []; }
+}
+
+function saveScore() {
+  if (!state.currentWeek || state.answers.length === 0) return;
+  const correct = state.answers.filter(a => a.selected === a.correct).length;
+  const pct = Math.round((correct / state.answers.length) * 100);
+  const scores = getScores(state.currentWeek);
+  scores.push({
+    pct,
+    correct,
+    total: state.answers.length,
+    mode: state.currentWeek === 'mock' ? 'Mock' : 'Quiz',
+    date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  });
+  localStorage.setItem(`iot_scores_${state.currentWeek}`, JSON.stringify(scores));
+}
+
+/* =============================================
+   RETRY / HOME
+   ============================================= */
+function retryQuiz() {
+  setQuizLock(false);
+  clearQuizProgress();
+  hide('results-area');
+  show('start-card');
+  show('weekHeader');
+  routeTo(state.currentWeek);
+}
+
+function goHome() {
+  setQuizLock(false);
+  clearQuizProgress();
+  state.currentScreen = 'home';
+  state.currentWeek = null;
+  state.answers = [];
+  hide('results-area');
+  hide('quiz-area');
+  hide('weekHeader');
+  show('start-card');
+  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('start-title').textContent = 'Select a Week';
+  document.getElementById('start-desc').textContent = 'Choose a week from the sidebar to begin practising, or tap Mock Exam to test yourself across all weeks at once.';
+  document.getElementById('start-btn-wrap').style.display = 'none';
+}
+
+/* =============================================
+   UPI MODAL
+   ============================================= */
+function openUPIModal() {
+  document.getElementById('upi-modal').classList.add('open');
+}
+function closeUPIModal(event) {
+  if (event) {
+    event.stopPropagation();
+    const overlay = document.getElementById('upi-modal');
+    if (event.currentTarget === overlay && event.target !== overlay) return;
+  }
+  document.getElementById('upi-modal').classList.remove('open');
+}
+
+/* =============================================
+   SIDEBAR (mobile)
+   ============================================= */
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('hidden-mobile');
+  overlay.classList.toggle('show');
+}
+function closeSidebar() {
+  if (window.innerWidth <= 700) {
+    document.getElementById('sidebar').classList.add('hidden-mobile');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+}
+
+/* =============================================
+   QUIZ LOCK + RESTORE
+   ============================================= */
+function setQuizLock(locked) {
+  document.body.classList.toggle('quiz-locked', locked);
+}
+
+function persistQuizProgress() {
+  if (!state.quizActive) return;
+  const snapshot = {
+    currentWeek: state.currentWeek,
+    questions: state.questions,
+    currentQIdx: state.currentQIdx,
+    answers: state.answers
+  };
+  sessionStorage.setItem(QUIZ_LOCK_KEY, JSON.stringify(snapshot));
+}
+
+function clearQuizProgress() {
+  sessionStorage.removeItem(QUIZ_LOCK_KEY);
+}
+
+function restoreQuizProgress() {
+  const raw = sessionStorage.getItem(QUIZ_LOCK_KEY);
+  if (!raw) return false;
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.currentWeek || !Array.isArray(saved.questions) || !saved.questions.length) return false;
+
+    state.currentWeek = saved.currentWeek;
+    state.questions = saved.questions;
+    state.currentQIdx = Math.min(saved.currentQIdx || 0, saved.questions.length - 1);
+    state.answers = Array.isArray(saved.answers) ? saved.answers : [];
+    state.quizActive = true;
+    state.currentScreen = 'quiz';
+
+    document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById(`weekBtn_${state.currentWeek}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    hide('start-card');
+    hide('results-area');
+    hide('weekHeader');
+    show('quiz-area');
+    setQuizLock(true);
+    renderQuestion();
+    return true;
+  } catch {
+    clearQuizProgress();
+    return false;
+  }
+}
+
+/* =============================================
+   UTILS
+   ============================================= */
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+</script>
+</body>
+</html>
